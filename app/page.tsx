@@ -125,7 +125,19 @@ export default function ChatPage() {
         body: formData,
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        const text = await response.text()
+        console.error("[v0] Upload error response:", text)
+        throw new Error(`PDF yükleme başarısız (${response.status}): ${text.substring(0, 100)}`)
+      }
+
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error("[v0] JSON parse error:", parseError)
+        throw new Error("Sunucudan geçersiz yanıt alındı. Lütfen tekrar deneyin.")
+      }
 
       if (data.error) {
         throw new Error(data.error)
@@ -150,6 +162,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
+      e.target.value = ""
     }
   }
 
