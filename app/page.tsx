@@ -27,13 +27,12 @@ export default function ChatPage() {
   const [pdfContext, setPdfContext] = useState<string>("")
   const [currentProvider, setCurrentProvider] = useState<string>("mistral")
   const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isLoading])
 
   useEffect(() => {
     if (isLoading && timerRef.current === null) {
@@ -209,6 +208,7 @@ export default function ChatPage() {
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </ScrollArea>
