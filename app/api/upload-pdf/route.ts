@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
-import { existsSync } from "fs"
-import path from "path"
+import { GoogleGenerativeAI } from "@google/generative-ai"
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,26 +16,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Sadece PDF dosyaları yüklenebilir" }, { status: 400 })
     }
 
+    // Convert file to base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    const base64 = buffer.toString("base64")
 
-    // Save to public/uploads directory
-    const uploadsDir = path.join(process.cwd(), "public", "uploads")
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
+    // Use Gemini to extract text from PDF
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: "application/pdf",
+          data: base64,
+        },
+      },
+      "Bu PDF dosyasındaki tüm metni çıkar. Başlıklar, paragraflar ve önemli bilgileri koru. Sadece metni ver, açıklama yapma.",
+    ])
+
+    const response = await result.response
+    const extractedText = response.text()
+
+    if (!extractedText || extractedText.length < 50) {
+      throw new Error("PDF'den metin çıkarılamadı")
     }
-
-    const fileName = `${Date.now()}-${file.name}`
-    const filePath = path.join(uploadsDir, fileName)
-    await writeFile(filePath, buffer)
 
     return NextResponse.json({
       success: true,
-      fileName,
-      filePath: `/uploads/${fileName}`,
+      fileName: file.name,
+      extractedText,
+      textLength: extractedText.length,
     })
   } catch (error: any) {
     console.error("[v0] Upload error:", error)
-    return NextResponse.json({ error: error.message || "Yükleme hatası" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: error.message || "PDF yükleme hatası",
+        details: "PDF okunamadı. Dosyanın hasarlı olmadığından emin olun.",
+      },
+      { status: 500 },
+    )
   }
 }
