@@ -46,7 +46,7 @@ Gerçek PDF işleme için Python backend gerekiyor:
 
 ## Özellikler
 
-- Gemini 1.5 Flash API (ücretsiz tier)
+- Gemini 1.5 Flash API (��cretsiz tier)
 - Chat history (son 50 mesaj)
 - PDF yükleme (UI hazır, backend TODO)
 - Gerçek zamanlı düşünme sayacı
