@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     let extractedText
     try {
       console.log("[v0] Calling Gemini API for text extraction...")
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
       const result = await model.generateContent([
         {
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
         {
           error: "Gemini API hatası",
           details: geminiError.message || geminiError.toString(),
+          hint: "API key'inizi https://ai.google.dev adresinde 'Get API Key' ile oluşturun ve Vercel Dashboard → Settings → Environment Variables'a ekleyin.",
         },
         { status: 500 },
       )
