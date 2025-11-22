@@ -115,6 +115,7 @@ export default function ChatPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setIsLoading(true)
     const formData = new FormData()
     formData.append("file", file)
 
@@ -131,16 +132,37 @@ export default function ChatPage() {
       }
 
       setUploadedPdf(data.fileName)
-      setPdfContext("PDF yüklendi ve işleniyor...")
+      setPdfContext(data.extractedText || "")
+
+      const successMessage: Message = {
+        role: "assistant",
+        content: `✅ PDF başarıyla yüklendi: ${data.fileName}\n\n${data.textLength} karakter metin çıkarıldı. Artık bu belgeye dayalı sorular sorabilirsiniz!`,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, successMessage])
     } catch (error: any) {
       console.error("[v0] Upload error:", error)
-      alert(`Yükleme hatası: ${error.message}`)
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `❌ PDF yükleme hatası: ${error.message}`,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleClearPdf = () => {
     setUploadedPdf(null)
     setPdfContext("")
+
+    const clearMessage: Message = {
+      role: "assistant",
+      content: "PDF kaldırıldı. Artık genel bilgilerimi kullanıyorum.",
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, clearMessage])
   }
 
   return (
