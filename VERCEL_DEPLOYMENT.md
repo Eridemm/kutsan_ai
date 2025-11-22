@@ -96,6 +96,31 @@ Kullanıcı → Vercel (Frontend + API Routes)
 
 **Aylık bütçe:** $0-60
 
+## PDF Yükleme Nasıl Çalışır?
+
+Sistem PDF'leri Gemini API kullanarak işler:
+1. PDF dosyasını yüklersiniz
+2. Gemini API PDF'den tüm metni çıkarır (OCR)
+3. Çıkarılan metin bellekte context olarak saklanır
+4. Her soruda bu context modele gönderilir
+5. Model PDF'deki bilgilere göre cevap verir
+
+**Önemli Notlar:**
+- PDF'ler Vercel sunucusunda kalıcı olarak saklanmaz
+- Sadece oturumunuz boyunca bellekte tutulur
+- Sayfa yenilendiğinde PDF tekrar yüklenmelidir
+- Maksimum PDF boyutu: ~10MB (Gemini API limiti)
+
+## Fine-Tuning Yetenekleri
+
+Bu chatbot PDF yükleyerek "eğitilebilir":
+- Ders kitapları yükleyerek o konularda uzmanlaşır
+- Notlar, dökümanlar yüklenebilir
+- Model yüklenen belgelerdeki bilgilere göre cevap verir
+- Her oturumda farklı PDF'ler yüklenebilir
+
+**Not:** Bu gerçek fine-tuning değil, RAG (Retrieval-Augmented Generation) sistemidir. Model kendisi değişmez, sadece yüklenen belgelerden bilgi kullanır.
+
 ## Güncelleme (Git Push ile Otomatik Deploy)
 
 \`\`\`bash
