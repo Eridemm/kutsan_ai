@@ -5,6 +5,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY environment variable eksik. Lütfen API key'inizi ekleyin." },
+        { status: 500 },
+      )
+    }
+
     const formData = await req.formData()
     const file = formData.get("file") as File
 
@@ -15,6 +22,13 @@ export async function POST(req: NextRequest) {
     if (!file.name.endsWith(".pdf")) {
       return NextResponse.json({ error: "Sadece PDF dosyaları yüklenebilir" }, { status: 400 })
     }
+
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: "PDF dosyası çok büyük. Maksimum 10MB olmalı." }, { status: 400 })
+    }
+
+    console.log("[v0] Processing PDF:", file.name, file.size, "bytes")
 
     // Convert file to base64
     const bytes = await file.arrayBuffer()
@@ -37,8 +51,10 @@ export async function POST(req: NextRequest) {
     const response = await result.response
     const extractedText = response.text()
 
+    console.log("[v0] Extracted text length:", extractedText.length)
+
     if (!extractedText || extractedText.length < 50) {
-      throw new Error("PDF'den metin çıkarılamadı")
+      throw new Error("PDF'den yeterli metin çıkarılamadı. Dosyanın metin içerdiğinden emin olun.")
     }
 
     return NextResponse.json({
@@ -52,7 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: error.message || "PDF yükleme hatası",
-        details: "PDF okunamadı. Dosyanın hasarlı olmadığından emin olun.",
+        details: error.toString(),
       },
       { status: 500 },
     )
