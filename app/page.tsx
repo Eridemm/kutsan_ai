@@ -115,20 +115,57 @@ export default function ChatPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+    console.log(`[v0] Uploading PDF: ${file.name} (${fileSizeMB}MB)`)
+
+    const progressMessage: Message = {
+      role: "assistant",
+      content: `📤 PDF yükleniyor: ${file.name} (${fileSizeMB}MB)\n\nLütfen bekleyin...`,
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, progressMessage])
+
     setIsLoading(true)
-    const formData = new FormData()
-    formData.append("file", file)
 
     try {
+      console.log("[v0] Uploading to Blob Storage...")
+      const blobResponse = await fetch(`/api/upload-pdf/blob?filename=${encodeURIComponent(file.name)}`, {
+        method: "POST",
+        body: file,
+      })
+
+      if (!blobResponse.ok) {
+        const errorText = await blobResponse.text()
+        console.error("[v0] Blob upload error:", errorText)
+        throw new Error(`Blob yükleme hatası: ${errorText}`)
+      }
+
+      const { url: blobUrl } = await blobResponse.json()
+      console.log("[v0] Blob upload successful:", blobUrl)
+
+      console.log("[v0] Extracting text from PDF...")
       const response = await fetch("/api/upload-pdf", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blobUrl,
+          fileName: file.name,
+        }),
       })
 
       if (!response.ok) {
         const text = await response.text()
-        console.error("[v0] Upload error response:", text)
-        throw new Error(`PDF yükleme başarısız (${response.status}): ${text.substring(0, 100)}`)
+        console.error("[v0] Extract error response:", text)
+
+        let errorMessage = `PDF işleme başarısız (${response.status})`
+        try {
+          const errorData = JSON.parse(text)
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          errorMessage = text.substring(0, 200)
+        }
+
+        throw new Error(errorMessage)
       }
 
       let data
@@ -148,7 +185,7 @@ export default function ChatPage() {
 
       const successMessage: Message = {
         role: "assistant",
-        content: `✅ PDF başarıyla yüklendi: ${data.fileName}\n\n${data.textLength} karakter metin çıkarıldı. Artık bu belgeye dayalı sorular sorabilirsiniz!`,
+        content: `✅ PDF başarıyla yüklendi: ${data.fileName}\n\n${data.textLength.toLocaleString()} karakter metin çıkarıldı. Artık bu belgeye dayalı sorular sorabilirsiniz!`,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, successMessage])
@@ -189,18 +226,25 @@ export default function ChatPage() {
           </CardHeader>
           <CardContent className="flex items-center gap-3 pb-4">
             <label htmlFor="pdf-upload">
-              <Button variant="outline" className="cursor-pointer bg-transparent" asChild>
+              <Button variant="outline" className="cursor-pointer bg-transparent" asChild disabled={isLoading}>
                 <span>
                   <Upload className="w-4 h-4 mr-2" />
                   PDF Yükle
                 </span>
               </Button>
             </label>
-            <input id="pdf-upload" type="file" accept=".pdf" onChange={handleUpload} className="hidden" />
+            <input
+              id="pdf-upload"
+              type="file"
+              accept=".pdf"
+              onChange={handleUpload}
+              className="hidden"
+              disabled={isLoading}
+            />
             {uploadedPdf && (
               <div className="flex items-center gap-2 flex-1">
                 <span className="text-sm text-muted-foreground truncate">{uploadedPdf}</span>
-                <Button variant="ghost" size="sm" onClick={handleClearPdf} className="shrink-0">
+                <Button variant="ghost" size="sm" onClick={handleClearPdf} className="shrink-0" disabled={isLoading}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
